@@ -12,6 +12,7 @@
   "devDependencies": {
     "vercel": "^33.0.0"
   },
+  "type": "module",
   "engines": {
     "node": ">=18"
   }
