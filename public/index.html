@@ -420,62 +420,23 @@ async function deleteItem(id) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  CLAUDE API – KI-ANALYSE
+//  CLAUDE API – KI-ANALYSE (via /api/analyze)
 // ═══════════════════════════════════════════════════════════
 async function analyzeClothing(base64Image, mimeType) {
-  const apiKey = state.settings.apiKey;
-  if (!apiKey) {
-    showToast('Bitte zuerst den API-Key in ⚙️ Einstellungen eintragen.', 'error', 5000);
-    return null;
-  }
-
-  const prompt = `Du bist ein Modeexperte. Analysiere dieses Kleidungsstück-Bild und antworte NUR mit einem validen JSON-Objekt (kein Markdown, keine Erklärungen):
-
-{
-  "name": "Kurzer beschreibender Name (z.B. 'Weißes Leinenhemd')",
-  "kategorie": "Eines von: Oberteil, Hose, Kleid, Rock, Jacke, Mantel, Pullover, Schuhe, Accessoire, Sonstiges",
-  "farben": ["Hauptfarbe", "optionale Akzentfarbe"],
-  "sitz": "Eines von: Slim/Eng, Regular/Normal, Oversized/Weit",
-  "laenge": "Eines von: Kurz, Normal, Lang",
-  "material": "Erkanntes Material (z.B. Baumwolle, Leder, Leinen, Wolle, Synthetik)",
-  "textur": "Kurzbeschreibung (z.B. Glatt, Gestrickt, Denim, Strukturiert, Seidig)",
-  "waerme": "Eines von: Sehr leicht (25°C+), Leicht (20-25°C), Mittel (10-20°C), Warm (0-10°C), Sehr warm (-10-0°C)",
-  "jahreszeiten": ["aus: Frühling, Sommer, Herbst, Winter"],
-  "styleMood": ["2-3 aus: Casual, Elegant, Sportlich, Minimal, Boho, Business, Streetwear, Romantic, Rock, Vintage, Preppy, Festlich"],
-  "notizen": "1-2 Sätze Kombinationstipps"
-}`;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/analyze', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Image } },
-            { type: 'text', text: prompt }
-          ]
-        }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64Image, mimeType }),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      showToast(`KI-Fehler: ${err?.error?.message || res.status}`, 'error', 5000);
+      showToast(`KI-Fehler: ${err?.error || res.status}`, 'error', 5000);
       return null;
     }
 
-    const data = await res.json();
-    const text = data.content[0].text.trim().replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
-    return JSON.parse(text);
+    return await res.json();
   } catch (err) {
     showToast(`Analyse fehlgeschlagen: ${err.message}`, 'error', 5000);
     return null;
